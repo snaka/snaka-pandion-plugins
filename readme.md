@@ -2,8 +2,8 @@
 
 ## Growl
 
-This plugin added growl feauture to Pandion.
-If you recieve the status changed message or chat messages then notified by Growl for Windows.
+This plugin add growl functionality to Pandion.
+When the message of the status change and the chat is received, Growl notifies you immediately.
 
 ### Download
 
