@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Growl plugin
+  Author: snaka
+  Email:  snaka.gml@gmail.com
+  Date:   November 2010
+-->
+<plugin type="code">
+	<name>Growl</name>
+	<description>
+    Notify any event by Growl for Windows.
+    *NOTE* This plugin uses GNTPCom library
+    So you need install GNTPCom first.
+  </description>
+	<version>0.1</version>
+	<event for="onLoad">
+		<code language="JScript" parameter="context">
+			<![CDATA[
+        /*
+            Initialize
+         */
+
+        growl = {};   // namespace
+
+        // setup configuration
+        growl.config = {};
+        growl.config.raiseEveryEvents = false;
+        growl.config.notifyOnlyStatusChanged = true;
+
+        // initialize growler object
+        growl.growler = new ActiveXObject('GNTPCom.Growler');
+        var type = new ActiveXObject('Scripting.Dictionary');
+        type.add(0, 'notify');
+        growl.growler.Init('Pandion', type.Items());
+
+        /*
+            notify
+         */
+        growl.notify = function(title, message, iconPath) {
+          warn({ "title": title, "message": message, "icon": iconPath});
+
+          // notify
+          var title = title || 'Pandion';
+          var icon = iconPath || "C:\\Progra~1\\Pandion\\images\\clients\\pandion.gif"
+          growl.growler.Notify('notify', title, message, icon);
+        };
+
+        /*
+            Parse presence xml then notify
+         */
+        growl.notifyPresence = function(dom, option) {
+          var presence = new XMPPPresence()
+          presence.FromDOM(dom);
+
+          var status = (option && option['defaultStatus']) || presence.Status;
+          var addr = presence.FromAddress;
+          var resource = getResourceItem(addr.ShortAddress(), addr.Resource);
+
+          // check status
+          warn("received: " + status);
+          if (resource) {
+            var current_status = getCurrentStatus(resource);
+            warn("current : " + current_status);
+            if (growl.config.notifyOnlyStatusChanged && current_status == status)
+              return;
+          }
+
+          // get icon path
+          var hash = dom.selectSingleNode('/presence/x[@xmlns = "jabber:x:avatar"]/hash');
+          var iconPath = '';
+          if (hash && hash.text.length > 0)
+            iconPath = external.globals('usersdir') + 'Avatars\\' + hash.text;
+          else {
+            warn("Hash hasn't exist in xml. So try to fetch from Roster object.");
+            if (resource)
+              iconPath = external.globals('usersdir') + 'Avatars\\' + resource.Avatar;
+          }
+
+          growl.notify(presence.FromAddress.User, status, iconPath);
+        };
+
+        function getCurrentStatus(resource) {
+          var result = resource.Status || '';
+          if (result == external.globals( 'Translator' ).Translate( 'main', 'cl_status_empty' ))
+            result = '';
+          return result;
+        }
+
+        function getResourceItem(shortAddr, resource) {
+          var roster = external.globals('ClientRoster');
+          if (roster.Items.Exists(shortAddr)) {
+            warn(shortAddr + " is exists in Roster.");
+            var resources = roster.Items(shortAddr).Resources;
+            if (resources.Exists(resource)) {
+              return resources(resource);
+            }
+          }
+          return null;
+        }
+      ]]>
+		</code>
+	</event>
+	<event for="onXMPPPresence" xpath="/presence[@type!='unavailable']|/presence[not(@type)]">
+		<code language="JScript" parameter="context"><![CDATA[
+        /*
+            presence: any (except 'unavailable')
+         */
+        growl.notifyPresence(context('xmldom'));
+
+        var presence = new XMPPPresence();
+        presence.FromDOM(context('xmldom'));
+        growl.presence = presence;
+    ]]></code>
+	</event>
+	<event for="onXMPPPresence" xpath="/presence[@type='unavailable']">
+		<code language="JScript" parameter="context"><![CDATA[
+      /*
+          presence: unavailable
+       */
+      growl.notifyPresence(context('xmldom'), {defaultStatus: "<Unavailable>"});
+
+    ]]></code>
+	</event>
+	<event for="onXMPPMessage" xpath="/message/body/text()">
+		<code language="JScript" parameter="context"><![CDATA[
+      /*
+          chat message
+       */
+      function getAvatar(fromAddress) {
+        var roster = external.globals('ClientRoster');
+        var shortAddress = fromAddress.ShortAddress();
+        var resource = fromAddress.Resource;
+
+        if (roster.Items.Exists(shortAddress))
+          if (roster.Items(shortAddress).Resources.Exists(resource))
+          return external.globals('usersdir') + 'Avatars\\' +
+                  roster.Items(shortAddress).Resources(resource).Avatar;
+
+        return external.globals('usersdir') + 'Avatars\\' +
+                roster.GetAvatar(resource, shortAddress);
+      }
+
+      var msg = new XMPPMessage();
+      msg.FromDOM( context('xmldom') );
+
+      var from = msg.FromAddress.User;
+      var body = msg.Body;
+      var avatar = getAvatar(msg.FromAddress);
+      growl.notify(from, body, avatar);
+
+    ]]></code>
+	</event>
+</plugin>
+<!-- vim: set ts=2 sw=2 et : -->
