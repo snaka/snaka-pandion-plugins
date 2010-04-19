@@ -8,7 +8,7 @@ When the message of the status change and the chat is received, Growl notifies y
 ### Download
 
 * [GNTP/COM DLL](http://github.com/snaka/GNTPCom/downloads)
-* [Growl plugin](http://www.example.com/)
+* [Growl plugin](http://github.com/snaka/snaka-pandion-plugins/blob/master/growl/growl.pdn)
 
 ### Install
 
