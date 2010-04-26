@@ -5,7 +5,7 @@
 This plugin add growl functionality to Pandion.
 When the message of the status change and the chat is received, Growl notifies you immediately.
 
-![screenshot][http://gyazo.com/34a61fd9d13b4b03751b5feca298d316.png]
+![screenshot](http://gyazo.com/34a61fd9d13b4b03751b5feca298d316.png)
 
 ### Download
 
